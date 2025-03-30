@@ -1,33 +1,35 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { useAuth } from "../hooks/useAuth";
+import { loginSuccess } from "../store/userSlice";
+import { loginUser } from "../services/authService";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../features/store";
+import { clearError, login } from "../features/auth/authSlice";
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState("");
+  const dispatch = useDispatch();
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const { login, isLoading, error } = useAuth();
+  const { isLoading, error } = useAuth();
   const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/connect');
+    }
+    return () => {
+      dispatch(clearError()); // Clear any previous errors when the component unmounts
+    };
+  }, [isAuthenticated, navigate, dispatch]);
+
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
-
-    // Basic validation
-    if (!email || !password) {
-      setFormError("Please fill in all fields");
-      return;
-    }
-
-    try {
-      await login();
-      //   await login({ email, password });
-      navigate("/");
-    } catch (err) {
-      // Error is handled by the auth slice
-    }
+    dispatch(login({ email, password }));
   };
 
   return (
@@ -50,7 +52,7 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleLogin}>
             <div className="space-y-4">
               <Input
                 label="Work email"

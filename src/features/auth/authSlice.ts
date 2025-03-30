@@ -1,6 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { LoginCredentials, User } from "../../types/auth";
-import { authService } from "../../services/authService";
+import { LoginCredentials, User, RegisterCredentials } from "../../types/auth";
+import {
+  loginUser,
+  logoutUser,
+  registerUser,
+} from "../../services/authService";
 
 interface AuthState {
   user: User | null;
@@ -8,6 +12,10 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  level: string | null;
+  status: string | null;
+  _id: string | null;
+  name: string | null;
 }
 
 const initialState: AuthState = {
@@ -16,13 +24,19 @@ const initialState: AuthState = {
   isAuthenticated: !!localStorage.getItem("token"),
   isLoading: false,
   error: null,
+  level: null,
+  status: null,
+  _id: null,
+  name: '',
 };
 
-export const login = createAsyncThunk(
+export const login: any = createAsyncThunk(
   "auth/login",
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
-      const response = await authService.login(credentials);
+      const response = await loginUser(credentials.email, credentials.password);
+
+      console.log("login response", response);
       return response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || "Login failed");
@@ -31,8 +45,22 @@ export const login = createAsyncThunk(
 );
 
 export const logout = createAsyncThunk("auth/logout", async () => {
-  await authService.logout();
+  await logoutUser();
 });
+
+export const register: any = createAsyncThunk(
+  "auth/register",
+  async (credentials: RegisterCredentials, { rejectWithValue }) => {
+    try {
+      const response = await registerUser(credentials);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Registration failed"
+      );
+    }
+  }
+);
 
 const authSlice = createSlice({
   name: "auth",
@@ -50,11 +78,25 @@ const authSlice = createSlice({
       })
       .addCase(
         login.fulfilled,
-        (state, action: PayloadAction<{ user: User; token: string }>) => {
+        (
+          state,
+          action: PayloadAction<{
+            user: User;
+            token: string;
+            level: string;
+            status: string;
+            _id: string;
+            name: string;
+          }>
+        ) => {
           state.isLoading = false;
           state.isAuthenticated = true;
           state.user = action.payload.user;
           state.token = action.payload.token;
+          state.level = action.payload.level;
+          state.status = action.payload.status;
+          state._id = action.payload._id;
+          state.name = action.payload.name;
         }
       )
       .addCase(login.rejected, (state, action) => {

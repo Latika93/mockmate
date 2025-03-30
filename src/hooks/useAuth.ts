@@ -9,14 +9,6 @@ export const useAuth = () => {
     (state: RootState) => state.auth
   );
 
-  //   const handleLogin = async (credentials: LoginCredentials) => {
-  //     return dispatch(login(credentials));
-  //   };
-
-  //   const handleLogout = async () => {
-  //     return dispatch(logout());
-  //   };
-
   return {
     user,
     token,
@@ -24,8 +16,6 @@ export const useAuth = () => {
     isLoading,
     error,
     login: () => {},
-    // login: handleLogin,
     logout: () => {},
-    // logout: handleLogout,
   };
 };

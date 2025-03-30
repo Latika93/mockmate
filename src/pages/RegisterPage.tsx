@@ -1,50 +1,67 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
+import { register } from "../features/auth/authSlice";
+import { RootState } from "../features/store";
+import { useSelector, useDispatch } from "react-redux";
+import { clearError } from "../features/auth/authSlice";
 
 export const RegisterPage: React.FC = () => {
+  const dispatch = useDispatch();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+91"); // Default to India for the mockup
   const [receiveResources, setReceiveResources] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [formErrors, setFormErrors] = useState<string[]>([]); // State for form validation errors
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsLoading(true);
+  const { isLoading, error, isAuthenticated } = useSelector(
+    (state: RootState) => state.auth
+  );
 
-    // Basic validation
-    if (!firstName || !lastName || !email) {
-      setError("Please fill in all required fields");
-      setIsLoading(false);
-      return;
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/connect"); // Or maybe navigate to login after successful registration
     }
+    return () => {
+      dispatch(clearError());
+    };
+  }, [isAuthenticated, navigate, dispatch]);
 
+  const validateForm = () => {
+    const errors: string[] = [];
+    if (!firstName) errors.push("First name is required.");
+    if (!lastName) errors.push("Last name is required.");
+    if (!email) {
+      errors.push("Email is required.");
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      errors.push("Email is invalid.");
+    }
+    if (!password) errors.push("Password is required.");
+    if (password.length < 6)
+      errors.push("Password must be at least 6 characters long.");
+    setFormErrors(errors);
+    return errors.length === 0;
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return; // Validate form before proceeding
     try {
-      // This would be replaced with actual API registration logic
-      console.log("Registration data:", {
-        firstName,
-        lastName,
-        email,
-        phone: countryCode + phone,
-        receiveResources,
-      });
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // In a real application, would navigate to a confirmation page or login
-      alert("Registration submitted successfully");
-
-      setIsLoading(false);
-    } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.");
-      setIsLoading(false);
+      await dispatch(
+        register({
+          name: firstName + " " + lastName,
+          email,
+          password: password,
+        })
+      ).unwrap();
+      navigate("/login");
+    } catch (error) {
+      console.error("Registration failed:", error);
     }
   };
 
@@ -71,7 +88,15 @@ export const RegisterPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          {formErrors.length > 0 && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
+              {formErrors.map((err, index) => (
+                <div key={index}>{err}</div>
+              ))}
+            </div>
+          )}
+
+          <form onSubmit={handleSignup}>
             <div className="space-y-4">
               <Input
                 label="First name*"
@@ -100,7 +125,16 @@ export const RegisterPage: React.FC = () => {
                 required
               />
 
-              <div>
+              <Input
+                label="Password*"
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+
+              {/* <div>
                 <label
                   htmlFor="phone"
                   className="block text-sm font-medium text-gray-700 mb-1"
@@ -125,8 +159,8 @@ export const RegisterPage: React.FC = () => {
                     onChange={(e) => setPhone(e.target.value)}
                   />
                 </div>
-              </div>
-
+              </div> 
+*/}
               <div className="flex items-start">
                 <div className="flex items-center h-5">
                   <input
@@ -151,7 +185,7 @@ export const RegisterPage: React.FC = () => {
               </div>
 
               <Button type="submit" fullWidth loading={isLoading}>
-                Get a demo
+                Register
               </Button>
             </div>
           </form>
